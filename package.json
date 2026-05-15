@@ -1,0 +1,22 @@
+{
+  "name": "cypher-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "fix:labels": "node scripts/fix-node-labels.js",
+    "start": "node server.js",
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "neo4j-driver": "^6.0.1"
+  }
+}

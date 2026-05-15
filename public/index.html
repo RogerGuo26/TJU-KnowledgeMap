@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neo4j 图谱可视化</title>
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #f5f7fb;
+      --panel: rgba(255, 255, 255, 0.94);
+      --border: #dbe3f0;
+      --text: #1f2a44;
+      --muted: #6b7890;
+      --primary: #0f5aa6;
+      --primary-hover: #0b4a88;
+      --soft-blue: #eef4fb;
+      --soft-red: #fff3f2;
+      --shadow: 0 10px 30px rgba(18, 38, 63, 0.08);
+      --radius: 18px;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+      background: linear-gradient(180deg, #f8fbff 0%, #f2f5fa 100%);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 18px;
+      height: 100vh;
+      padding: 18px;
+    }
+
+    .sidebar {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 18px 14px;
+      border-bottom: 1px solid #edf2f8;
+      background: linear-gradient(135deg, #ffffff 0%, #f6f9fd 100%);
+    }
+
+    .brand a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      background: white;
+      border: 1px solid #e8eef7;
+      box-shadow: 0 6px 16px rgba(15, 90, 166, 0.08);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+
+    .brand a:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(15, 90, 166, 0.14);
+    }
+
+    .brand img {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+    }
+
+    .brand-text h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.1;
+      color: #10233e;
+    }
+
+    .brand-text p {
+      margin: 6px 0 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .sidebar-content {
+      padding: 18px;
+      overflow-y: auto;
+    }
+
+    .section {
+      margin-bottom: 18px;
+      padding: 16px;
+      background: #ffffff;
+      border: 1px solid #edf2f8;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(18, 38, 63, 0.04);
+    }
+
+    .section h2,
+    .section h3 {
+      margin: 0 0 12px;
+      font-size: 22px;
+      color: #12233b;
+    }
+
+    .section h3 {
+      font-size: 20px;
+    }
+
+    .search-box {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    input {
+      width: 100%;
+      padding: 13px 14px;
+      border-radius: 12px;
+      border: 1px solid #d9e3f2;
+      background: #fbfdff;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    input:focus {
+      border-color: #78a7de;
+      box-shadow: 0 0 0 4px rgba(15, 90, 166, 0.08);
+    }
+
+    .btn-group {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.2s ease, opacity 0.2s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-secondary {
+      background: #eef4fb;
+      color: #23466f;
+      border: 1px solid #d7e3f4;
+    }
+
+    .btn-danger {
+      background: #fff3f2;
+      color: #a63b32;
+      border: 1px solid #f1d3cf;
+    }
+
+    pre {
+      margin: 0;
+      min-height: 150px;
+      padding: 14px;
+      border-radius: 12px;
+      background: #f8fafc;
+      border: 1px solid #e7edf5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #20324f;
+      overflow: auto;
+    }
+
+    .tip {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    .graph-panel {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .graph-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid #edf2f8;
+      background: linear-gradient(135deg, #ffffff 0%, #f7faff 100%);
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .graph-header h2 {
+      margin: 0;
+      font-size: 20px;
+      color: #12233b;
+    }
+
+    .graph-header span {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .stats-bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .stat-card {
+      min-width: 120px;
+      padding: 10px 14px;
+      background: white;
+      border: 1px solid #e5edf7;
+      border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(18, 38, 63, 0.04);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #143055;
+    }
+
+    #network {
+      flex: 1;
+      min-height: 0;
+      background:
+        radial-gradient(circle at top left, rgba(15, 90, 166, 0.03), transparent 22%),
+        radial-gradient(circle at bottom right, rgba(15, 90, 166, 0.04), transparent 20%),
+        #fcfdff;
+    }
+
+    .legend {
+      margin-top: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: #314562;
+    }
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 1100px) {
+      .app {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+      }
+
+      .sidebar {
+        max-height: 46vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <a href="/index.html" title="返回首页">
+          <img src="/assets/Tianjin_University_logo.svg" alt="天津大学 Logo" />
+        </a>
+        <div class="brand-text">
+          <h1>Neo4j 图谱</h1>
+          <p>天津大学知识图谱可视化平台</p>
+        </div>
+      </div>
+
+      <div class="sidebar-content">
+        <section class="section">
+          <h2>图谱检索</h2>
+          <div class="search-box">
+            <input id="searchInput" placeholder="输入 name / title 关键词搜索" />
+          </div>
+
+          <div class="btn-group">
+            <button class="btn-primary" onclick="searchNode()">搜索节点</button>
+            <button class="btn-secondary" onclick="loadGraph()">加载全图</button>
+            <button class="btn-danger" onclick="resetGraph()">清空画布</button>
+          </div>
+        </section>
+
+        <section class="section">
+          <h3>节点信息</h3>
+          <pre id="nodeInfo">点击节点后显示属性</pre>
+        </section>
+
+        <section class="section">
+          <h3>节点分类</h3>
+          <div id="legend" class="legend"></div>
+        </section>
+
+        <section class="section">
+          <h3>说明</h3>
+          <div class="tip">
+            点击节点：展开相邻关系<br />
+            拖拽节点：调整位置<br />
+            双击节点：聚焦到该节点<br />
+            鼠标滚轮：缩放图谱
+          </div>
+        </section>
+      </div>
+    </aside>
+
+    <main class="graph-panel">
+      <div class="graph-header">
+        <div>
+          <h2>知识图谱视图</h2>
+          <span>支持拖拽、缩放、搜索与节点扩展</span>
+        </div>
+
+        <div class="stats-bar">
+          <div class="stat-card">
+            <div class="stat-label">当前节点数</div>
+            <div class="stat-value" id="nodeCount">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">当前关系数</div>
+            <div class="stat-value" id="edgeCount">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">最后操作</div>
+            <div class="stat-value" id="lastAction" style="font-size:14px;font-weight:600;">初始化</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="network"></div>
+    </main>
+  </div>
+
+  <script>
+    const nodes = new vis.DataSet([]);
+    const edges = new vis.DataSet([]);
+    const container = document.getElementById("network");
+    const data = { nodes, edges };
+
+    const GROUP_COLORS = {
+      Person:   { background: "#4f8ef7", border: "#2f6ed5" },
+      School:   { background: "#8e6cf0", border: "#6f4fd4" },
+      Device:   { background: "#ff7a7a", border: "#db5454" },
+      Instrument: { background: "#ffd166", border: "#e0a21a" },
+      Signal:   { background: "#ffd84d", border: "#e1b300" },
+      Function: { background: "#72d44d", border: "#4fad2d" },
+      Module:   { background: "#57c7d4", border: "#2ea3b0" },
+      Pin:      { background: "#8b6cef", border: "#6e52cf" },
+      Pinout:   { background: "#5b8def", border: "#3f6fd1" },
+      Register: { background: "#df14db", border: "#b010ad" },
+      Node:     { background: "#c77dff", border: "#9d4edd" }
+    };
+
+    const FALLBACK_PALETTE = [
+      { background: "#4f8ef7", border: "#2f6ed5" },
+      { background: "#8e6cf0", border: "#6f4fd4" },
+      { background: "#ff7a7a", border: "#db5454" },
+      { background: "#ffd84d", border: "#e1b300" },
+      { background: "#72d44d", border: "#4fad2d" },
+      { background: "#57c7d4", border: "#2ea3b0" },
+      { background: "#ff9f43", border: "#e67e22" },
+      { background: "#f368e0", border: "#cc4eb8" }
+    ];
+
+    const assignedColors = { ...GROUP_COLORS };
+
+    function getColorByGroup(group) {
+      if (!assignedColors[group]) {
+        const used = Object.keys(assignedColors).length;
+        assignedColors[group] = FALLBACK_PALETTE[used % FALLBACK_PALETTE.length];
+      }
+      return assignedColors[group];
+    }
+
+    const options = {
+      autoResize: true,
+      interaction: {
+        hover: true,
+        navigationButtons: true,
+        keyboard: true
+      },
+      physics: {
+        enabled: true,
+        stabilization: false,
+        barnesHut: {
+          gravitationalConstant: -3200,
+          springLength: 130,
+          springConstant: 0.04
+        }
+      },
+      nodes: {
+        shape: "dot",
+        size: 18,
+        font: {
+          size: 13,
+          face: "Segoe UI",
+          color: "#32435f"
+        },
+        borderWidth: 1.5
+      },
+      edges: {
+        arrows: {
+          to: { enabled: true }
+        },
+        smooth: true,
+        font: {
+          align: "middle",
+          size: 11,
+          color: "#6d7c95"
+        },
+        color: {
+          color: "#b7c4d8",
+          highlight: "#7d8faa",
+          hover: "#7d8faa"
+        }
+      }
+    };
+
+    const network = new vis.Network(container, data, options);
+
+    async function postJSON(url, payload = {}) {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text);
+      }
+
+      return res.json();
+    }
+
+    function decorateNodes(nodeList) {
+      return nodeList.map(node => {
+        const group = node.group || "Node";
+        const color = getColorByGroup(group);
+        return {
+          ...node,
+          color: {
+            background: color.background,
+            border: color.border,
+            highlight: {
+              background: color.background,
+              border: color.border
+            },
+            hover: {
+              background: color.background,
+              border: color.border
+            }
+          }
+        };
+      });
+    }
+
+    function mergeGraph(graph) {
+      const existingNodeIds = new Set(nodes.getIds());
+      const existingEdgeIds = new Set(edges.getIds());
+
+      const decoratedNodes = decorateNodes(graph.nodes || []);
+      const newNodes = decoratedNodes.filter(n => !existingNodeIds.has(n.id));
+      const newEdges = (graph.edges || []).filter(e => !existingEdgeIds.has(e.id));
+
+      nodes.add(newNodes);
+      edges.add(newEdges);
+
+      updateStats();
+      renderLegend();
+    }
+
+    function updateStats(action = null) {
+      document.getElementById("nodeCount").textContent = nodes.length;
+      document.getElementById("edgeCount").textContent = edges.length;
+      if (action) {
+        document.getElementById("lastAction").textContent = action;
+      }
+    }
+
+    function renderLegend() {
+      const legend = document.getElementById("legend");
+      const groups = [...new Set(nodes.get().map(n => n.group || "Node"))].sort();
+
+      if (groups.length === 0) {
+        legend.innerHTML = '<div class="tip">当前暂无节点分类</div>';
+        return;
+      }
+
+      legend.innerHTML = groups.map(group => {
+        const color = getColorByGroup(group);
+        return `
+          <div class="legend-item">
+            <span class="legend-dot" style="background:${color.background};border-color:${color.border};"></span>
+            <span>${group}</span>
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function loadGraph() {
+      try {
+        nodes.clear();
+        edges.clear();
+        document.getElementById("nodeInfo").textContent = "点击节点后显示属性";
+
+        const graph = await postJSON("/api/graph");
+        mergeGraph(graph);
+
+        if ((graph.nodes || []).length === 0) {
+          alert("数据库里没有查到可展示的图数据");
+          updateStats("加载为空");
+        } else {
+          updateStats("加载全图");
+          network.fit({
+            animation: true
+          });
+        }
+      } catch (err) {
+        alert("加载失败：\n" + err.message);
+        updateStats("加载失败");
+      }
+    }
+
+    async function searchNode() {
+      const keyword = document.getElementById("searchInput").value.trim();
+
+      if (!keyword) {
+        alert("请输入关键词");
+        return;
+      }
+
+      try {
+        nodes.clear();
+        edges.clear();
+        document.getElementById("nodeInfo").textContent = "点击节点后显示属性";
+
+        const graph = await postJSON("/api/search", { keyword });
+        mergeGraph(graph);
+
+        if ((graph.nodes || []).length > 0) {
+          network.focus(graph.nodes[0].id, {
+            scale: 1.2,
+            animation: true
+          });
+          updateStats("搜索：" + keyword);
+        } else {
+          alert("没有搜索到相关节点");
+          updateStats("搜索无结果");
+        }
+      } catch (err) {
+        alert("搜索失败：\n" + err.message);
+        updateStats("搜索失败");
+      }
+    }
+
+    function resetGraph() {
+      nodes.clear();
+      edges.clear();
+      document.getElementById("nodeInfo").textContent = "点击节点后显示属性";
+      renderLegend();
+      updateStats("清空画布");
+    }
+
+    network.on("click", async function(params) {
+      if (params.nodes.length === 0) return;
+
+      const nodeId = params.nodes[0];
+      const node = nodes.get(nodeId);
+
+      document.getElementById("nodeInfo").textContent =
+        JSON.stringify(node.properties || {}, null, 2);
+
+      updateStats("选中：" + (node.label || node.id));
+
+      try {
+        const graph = await postJSON("/api/expand", { nodeId });
+        mergeGraph(graph);
+      } catch (err) {
+        alert("展开失败：\n" + err.message);
+        updateStats("展开失败");
+      }
+    });
+
+    network.on("doubleClick", function(params) {
+      if (params.nodes.length === 0) return;
+
+      network.focus(params.nodes[0], {
+        scale: 1.4,
+        animation: true
+      });
+      updateStats("聚焦节点");
+    });
+
+    renderLegend();
+    updateStats("初始化");
+    loadGraph();
+  </script>
+</body>
+</html>
