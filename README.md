@@ -8,6 +8,8 @@ Make sure Docker Desktop is running, then start the API and Neo4j:
 docker compose up --build
 ```
 
+On the first startup, Docker imports `dumps/neo4j.dump` into the local Neo4j volume.
+
 Open:
 
 - App/API: http://localhost:3000

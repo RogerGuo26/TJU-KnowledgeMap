@@ -1,4 +1,15 @@
 services:
+  neo4j-init:
+    image: neo4j:5-community
+    entrypoint: ["sh", "-c"]
+    command: >
+      "if [ ! -f /data/databases/neo4j/neostore ]; then
+        neo4j-admin database load neo4j --from-path=/dumps --overwrite-destination=true;
+      fi"
+    volumes:
+      - neo4j-data:/data
+      - ./dumps:/dumps:ro
+
   api:
     build: .
     ports:
@@ -15,6 +26,9 @@ services:
 
   neo4j:
     image: neo4j:5-community
+    depends_on:
+      neo4j-init:
+        condition: service_completed_successfully
     ports:
       - "7474:7474"
       - "7687:7687"
