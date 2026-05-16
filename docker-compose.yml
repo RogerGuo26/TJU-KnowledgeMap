@@ -1,6 +1,6 @@
 services:
   neo4j-init:
-    image: docker.1ms.run/library/neo4j:5-community
+    image: ${NEO4J_IMAGE:-docker.m.daocloud.io/library/neo4j:5-community}
     entrypoint: ["sh", "-c"]
     command: >
       "if [ ! -f /data/databases/neo4j/neostore ]; then
@@ -11,7 +11,10 @@ services:
       - ./dumps:/dumps:ro
 
   api:
-    build: .
+    build:
+      context: .
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-docker.m.daocloud.io/library/node:22-alpine}
     ports:
       - "3000:3000"
     environment:
@@ -25,7 +28,7 @@ services:
         condition: service_healthy
 
   neo4j:
-    image: docker.1ms.run/library/neo4j:5-community
+    image: ${NEO4J_IMAGE:-docker.m.daocloud.io/library/neo4j:5-community}
     depends_on:
       neo4j-init:
         condition: service_completed_successfully

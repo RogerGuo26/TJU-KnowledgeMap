@@ -527,8 +527,8 @@ docker compose up --build
 也可以先单独测试 Docker 能不能拉镜像：
 
 ```powershell
-docker pull docker.1ms.run/library/neo4j:5-community
-docker pull docker.1ms.run/library/node:22-alpine
+docker pull docker.m.daocloud.io/library/neo4j:5-community
+docker pull docker.m.daocloud.io/library/node:22-alpine
 ```
 
 这两个都成功后，再启动项目：
@@ -550,8 +550,8 @@ repository: library/node:pull
 这也是 Docker Hub 网络连接问题。项目已经把默认镜像改成了镜像站地址：
 
 ```text
-docker.1ms.run/library/node:22-alpine
-docker.1ms.run/library/neo4j:5-community
+docker.m.daocloud.io/library/node:22-alpine
+docker.m.daocloud.io/library/neo4j:5-community
 ```
 
 先更新项目代码：
@@ -567,6 +567,51 @@ docker compose up --build
 ```
 
 如果还是失败，说明当前网络连镜像站也不稳定。可以换手机热点，或者按上一节配置 Docker Desktop 代理。
+
+### 12.9 拉取镜像失败，提示 content descriptor not found
+
+如果启动时看到类似下面的错误：
+
+```text
+failed to compute cache key
+could not fetch content descriptor sha256:...
+from remote: not found
+```
+
+这通常是镜像站缓存不完整，不是项目代码问题。
+
+先更新项目代码：
+
+```powershell
+git pull
+```
+
+然后不用缓存重新构建：
+
+```powershell
+docker compose build --no-cache
+docker compose up
+```
+
+如果还失败，可以临时切换镜像源。使用 DaoCloud：
+
+```powershell
+$env:NODE_IMAGE="docker.m.daocloud.io/library/node:22-alpine"
+$env:NEO4J_IMAGE="docker.m.daocloud.io/library/neo4j:5-community"
+docker compose build --no-cache
+docker compose up
+```
+
+或者使用 1ms：
+
+```powershell
+$env:NODE_IMAGE="docker.1ms.run/library/node:22-alpine"
+$env:NEO4J_IMAGE="docker.1ms.run/library/neo4j:5-community"
+docker compose build --no-cache
+docker compose up
+```
+
+如果两个镜像站都失败，换手机热点或配置 Docker Desktop 代理后再试。
 
 ## 13. 给开发者的说明
 
