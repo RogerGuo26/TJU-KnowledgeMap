@@ -420,6 +420,40 @@ PS C:\Users\admin>
 
 那只是 PowerShell 当前路径提示，不是命令本身。只复制后面的命令。
 
+### 12.6 启动时提示 no configuration file provided: not found
+
+这个错误表示当前 PowerShell 所在文件夹里没有 `docker-compose.yml`。
+
+先用下面命令看当前目录：
+
+```powershell
+pwd
+```
+
+再看当前目录下有没有 `docker-compose.yml`：
+
+```powershell
+dir
+```
+
+如果没有，说明你还没有进入项目文件夹。假设项目下载到了桌面，执行：
+
+```powershell
+cd "$HOME\Desktop\TJU-KnowledgeMap"
+```
+
+然后再启动：
+
+```powershell
+docker compose up --build
+```
+
+如果你不确定项目在哪，可以在文件资源管理器里打开 `TJU-KnowledgeMap` 文件夹，在空白处右键，选择“在终端中打开”或“在 PowerShell 中打开”，再运行：
+
+```powershell
+docker compose up --build
+```
+
 ## 13. 给开发者的说明
 
 不要提交这些内容：
