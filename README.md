@@ -527,8 +527,8 @@ docker compose up --build
 也可以先单独测试 Docker 能不能拉镜像：
 
 ```powershell
-docker pull neo4j:5-community
-docker pull node:22-alpine
+docker pull docker.1ms.run/library/neo4j:5-community
+docker pull docker.1ms.run/library/node:22-alpine
 ```
 
 这两个都成功后，再启动项目：
@@ -536,6 +536,37 @@ docker pull node:22-alpine
 ```powershell
 docker compose up --build
 ```
+
+### 12.8 拉取镜像失败，提示 auth.docker.io/token 超时
+
+如果启动时看到类似下面的错误：
+
+```text
+failed to fetch anonymous token
+https://auth.docker.io/token
+repository: library/node:pull
+```
+
+这也是 Docker Hub 网络连接问题。项目已经把默认镜像改成了镜像站地址：
+
+```text
+docker.1ms.run/library/node:22-alpine
+docker.1ms.run/library/neo4j:5-community
+```
+
+先更新项目代码：
+
+```powershell
+git pull
+```
+
+然后重新启动：
+
+```powershell
+docker compose up --build
+```
+
+如果还是失败，说明当前网络连镜像站也不稳定。可以换手机热点，或者按上一节配置 Docker Desktop 代理。
 
 ## 13. 给开发者的说明
 

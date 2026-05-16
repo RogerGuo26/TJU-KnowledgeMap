@@ -1,6 +1,6 @@
 services:
   neo4j-init:
-    image: neo4j:5-community
+    image: docker.1ms.run/library/neo4j:5-community
     entrypoint: ["sh", "-c"]
     command: >
       "if [ ! -f /data/databases/neo4j/neostore ]; then
@@ -25,7 +25,7 @@ services:
         condition: service_healthy
 
   neo4j:
-    image: neo4j:5-community
+    image: docker.1ms.run/library/neo4j:5-community
     depends_on:
       neo4j-init:
         condition: service_completed_successfully
