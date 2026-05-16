@@ -454,6 +454,89 @@ docker compose up --build
 docker compose up --build
 ```
 
+### 12.7 拉取镜像失败，提示 registry-1.docker.io 超时
+
+如果启动时看到类似下面的错误：
+
+```text
+failed to resolve reference "docker.io/library/neo4j:5-community"
+dialing registry-1.docker.io:443
+Docker Desktop has no HTTPS proxy
+```
+
+说明 Docker 没有成功连接到 Docker Hub。项目本身没有坏，通常是网络问题。
+
+先试最简单的方法：
+
+1. 确认电脑能正常上网。
+2. 关闭 Docker Desktop，再重新打开。
+3. 换一个网络，例如手机热点。
+4. 重新执行：
+
+```powershell
+docker compose up --build
+```
+
+如果仍然失败，可以配置 Docker 镜像源：
+
+1. 打开 Docker Desktop。
+2. 点击右上角齿轮 `Settings`。
+3. 进入 `Docker Engine`。
+4. 找到右侧 JSON 配置。
+5. 改成下面这样，或在原有配置里加入 `registry-mirrors`。
+
+```json
+{
+  "registry-mirrors": [
+    "https://docker.1ms.run",
+    "https://docker.m.daocloud.io"
+  ]
+}
+```
+
+6. 点击 `Apply & restart`。
+7. Docker 重启完成后，在项目目录执行：
+
+```powershell
+docker compose up --build
+```
+
+如果电脑使用了代理软件，也可以在 Docker Desktop 里配置代理：
+
+1. 打开 Docker Desktop。
+2. 点击右上角齿轮 `Settings`。
+3. 进入 `Resources`。
+4. 进入 `Proxies`。
+5. 选择手动代理。
+6. HTTP Proxy 和 HTTPS Proxy 填代理地址。
+
+常见本机代理地址示例：
+
+```text
+http://127.0.0.1:7890
+```
+
+代理端口不一定是 `7890`，要以自己代理软件显示的端口为准。
+
+配置后点击 `Apply & restart`，再重新执行：
+
+```powershell
+docker compose up --build
+```
+
+也可以先单独测试 Docker 能不能拉镜像：
+
+```powershell
+docker pull neo4j:5-community
+docker pull node:22-alpine
+```
+
+这两个都成功后，再启动项目：
+
+```powershell
+docker compose up --build
+```
+
 ## 13. 给开发者的说明
 
 不要提交这些内容：
